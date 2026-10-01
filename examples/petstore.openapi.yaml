@@ -1,0 +1,177 @@
+openapi: 3.0.3
+info:
+  title: 遠足の受付API
+  version: "1.0.0"
+  description: |
+    line one
+    line two
+servers:
+  - url: https://api.example.com/v1
+    description: production host is ignored; the scenario calls localhost
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      tags: [pets]
+      summary: ペットの一覧
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [available, pending, sold]
+        - name: X-Request-Id
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: "[a-z]{4}"
+            minLength: 4
+            maxLength: 4
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pet"
+    post:
+      operationId: createPet
+      tags: [pets]
+      summary: ペットを追加する
+      parameters:
+        - name: dryRun
+          in: query
+          required: true
+          schema:
+            type: boolean
+      requestBody:
+        required: true
+        content:
+          application/json; charset=utf-8:
+            schema:
+              $ref: "#/components/schemas/Pet"
+      responses:
+        "201":
+          description: created
+          content:
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/Pet"
+  /pets/{petId}:
+    parameters:
+      - $ref: "#/components/parameters/PetId"
+    get:
+      operationId: getPet
+      tags: [pets]
+      summary: 1件を取得する
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/Pet"
+    delete:
+      operationId: deletePet
+      tags: [pets]
+      deprecated: true
+      summary: 廃止予定の削除
+      responses:
+        "204":
+          description: gone
+  /uploads:
+    post:
+      operationId: uploadNote
+      tags: [files]
+      summary: メモと写真
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                  minLength: 3
+                  maxLength: 8
+                  pattern: "[A-Z]{3}[0-9]{2}"
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: stored
+          content:
+            text/plain:
+              schema:
+                type: string
+webhooks:
+  newPet:
+    post:
+      operationId: webhookMustBeSkipped
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: webhook
+components:
+  parameters:
+    PetId:
+      name: petId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    Named:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 12
+    Pet:
+      allOf:
+        - $ref: "#/components/schemas/Named"
+        - type: object
+          required: [age, kind]
+          properties:
+            name:
+              type: string
+              minLength: 4
+              maxLength: 10
+            age:
+              type: integer
+              minimum: 0
+              maximum: 30
+              multipleOf: 2
+            nick:
+              type: string
+              minLength: 1
+              maxLength: 8
+            photo:
+              type: string
+              readOnly: true
+            tag:
+              type: string
+              nullable: true
+            kind:
+              $ref: "schemas/kind.yaml"
